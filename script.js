@@ -11,6 +11,10 @@ let currentChoices = [];
 let correctIndex = -1;
 let reviewLog = [];
 
+// 💡 무르기를 위한 히스토리 및 횟수 추적
+let moveHistory = [];
+let undoCount = 2;
+
 // ==========================================
 // 🗣️ TTS 남/녀 목소리 저장 변수
 // ==========================================
@@ -125,7 +129,6 @@ function playWrongSound() {
   osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// 🗣️ 브라우저에서 중국어 남/녀 목소리를 찾아내는 함수
 function getChineseVoices() {
   const voices = window.speechSynthesis.getVoices();
   const zhVoices = voices.filter((v) => v.lang.includes('zh'));
@@ -218,8 +221,6 @@ function prepareGame() {
 
 function startGame() {
   document.getElementById('rule-modal-overlay').style.display = 'none';
-
-  reviewLog = [];
   const gameScreen = document.getElementById('game-screen');
   gameScreen.style.display = 'flex';
   setTimeout(() => {
@@ -236,8 +237,16 @@ function initBoard() {
   boardState = Array.from({ length: BOARD_SIZE }, () =>
     Array(BOARD_SIZE).fill(null),
   );
+
   currentPlayer = 'black';
   gameOver = false;
+
+  // 💡 초기화(다시하기) 시 기록도 리셋
+  reviewLog = [];
+  moveHistory = [];
+  undoCount = 2;
+  updateUndoButton();
+
   document.getElementById('status').innerText = '흑(Black) 차례입니다';
 
   for (let r = 0; r < BOARD_SIZE; r++) {
@@ -252,6 +261,69 @@ function initBoard() {
   }
 }
 
+// ==========================================
+// 🔄 컨트롤 패널 기능 (무르기, 다시하기, 로비)
+// ==========================================
+function updateUndoButton() {
+  const btn = document.getElementById('undo-btn');
+  btn.innerText = `↩️ 무르기(${undoCount})`;
+  btn.disabled = undoCount <= 0 || gameOver;
+}
+
+function undoMove() {
+  if (gameOver) return;
+  if (undoCount <= 0) return;
+  if (moveHistory.length === 0) {
+    alert('무를 수 있는 수가 없습니다.');
+    return;
+  }
+
+  // 직전 행동 기록을 꺼냄
+  const lastMove = moveHistory.pop();
+
+  // 바둑판에서 돌 제거 (스파르타 모드에서 'none'으로 기록된 경우는 DOM 제거 생략)
+  if (lastMove.color !== 'none') {
+    boardState[lastMove.r][lastMove.c] = null;
+    const targetCell = document.querySelector(
+      `.cell[data-row="${lastMove.r}"][data-col="${lastMove.c}"]`,
+    );
+    const stone = targetCell.querySelector('.stone');
+    if (stone) stone.remove();
+  }
+
+  // 문제 푼 기록(리뷰 로그)도 최근 것 1개 삭제 (원상복구)
+  if (reviewLog.length > 0) reviewLog.pop();
+
+  // 턴 되돌리기
+  currentPlayer = lastMove.prevPlayer;
+  undoCount--;
+  updateUndoButton();
+
+  const nextText = currentPlayer === 'black' ? '흑(Black)' : '백(White)';
+  document.getElementById('status').innerText = `${nextText} 차례입니다`;
+}
+
+function restartGame() {
+  if (
+    confirm(
+      '정말 이 판을 다시 시작하시겠습니까?\n(현재까지 푼 문제 기록도 초기화됩니다)',
+    )
+  ) {
+    initBoard();
+  }
+}
+
+function returnToLobbyFromGame() {
+  if (confirm('게임을 중단하고 로비로 돌아가시겠습니까?')) {
+    document.getElementById('game-screen').style.display = 'none';
+    document.getElementById('lobby-screen').style.display = 'flex';
+    playLobbyBGM();
+  }
+}
+
+// ==========================================
+// 🎮 퀴즈 및 착점 로직
+// ==========================================
 function toggleTranslation() {
   const krElem = document.getElementById('modal-question-kr');
   const cnElem = document.getElementById('modal-question-cn');
@@ -332,7 +404,6 @@ function onCellClick(e) {
 }
 
 let toastTimeoutAnim;
-// 📝 중국어 정답, 한국어 정답을 각각 파라미터로 받도록 변경
 function showToast(isCorrect, cnAnswerText = '', krAnswerText = '') {
   const toast = document.getElementById('board-toast');
   const toastCn = document.getElementById('toast-cn');
@@ -354,7 +425,6 @@ function showToast(isCorrect, cnAnswerText = '', krAnswerText = '') {
   } else {
     toast.classList.add('toast-wrong');
     toastAns.style.display = 'block';
-    // 📝 오답 시 보여주는 정답 메시지도 중국어 한 줄, 한국어 한 줄로 분리
     toastAns.innerHTML = `<div style="margin-bottom: 5px;">정답: ${cnAnswerText}</div><div style="font-size: 15px; color: #ddd;">(${krAnswerText})</div>`;
   }
 
@@ -389,7 +459,6 @@ function handleAnswer(selectedIdx) {
     showToast(true);
   } else {
     playWrongSound();
-    // 📝 오답일 때 중국어 정답과 한국어 정답을 같이 넘겨줌
     showToast(false, currentQuizObj.cnB, currentQuizObj.krB);
     placedColor = 'gray';
   }
@@ -398,24 +467,30 @@ function handleAnswer(selectedIdx) {
 }
 
 function placeStone(r, c, color) {
-  boardState[r][c] = color;
-  const targetCell = document.querySelector(
-    `.cell[data-row="${r}"][data-col="${c}"]`,
-  );
-  const stone = document.createElement('div');
-  stone.classList.add('stone', color);
-  targetCell.appendChild(stone);
+  // 💡 무르기를 위해 현재 상황을 기록 저장 (돌이 'none'이라도 턴이 넘어가므로 기록)
+  moveHistory.push({ r: r, c: c, color: color, prevPlayer: currentPlayer });
 
-  playStoneSound();
+  if (color !== 'none') {
+    boardState[r][c] = color;
+    const targetCell = document.querySelector(
+      `.cell[data-row="${r}"][data-col="${c}"]`,
+    );
+    const stone = document.createElement('div');
+    stone.classList.add('stone', color);
+    targetCell.appendChild(stone);
 
-  if (color !== 'gray' && checkWin(r, c, color)) {
-    const winnerText = color === 'black' ? '흑(Black)' : '백(White)';
-    document.getElementById('status').innerText = `${winnerText} 승리!`;
-    gameOver = true;
+    playStoneSound();
 
-    if (currentMainBGM) currentMainBGM.pause();
-    setTimeout(showReviewModal, 1500);
-    return;
+    if (color !== 'gray' && checkWin(r, c, color)) {
+      const winnerText = color === 'black' ? '흑(Black)' : '백(White)';
+      document.getElementById('status').innerText = `${winnerText} 승리!`;
+      gameOver = true;
+      updateUndoButton(); // 게임 종료 시 무르기 비활성화
+
+      if (currentMainBGM) currentMainBGM.pause();
+      setTimeout(showReviewModal, 1500);
+      return;
+    }
   }
 
   currentPlayer = currentPlayer === 'black' ? 'white' : 'black';
