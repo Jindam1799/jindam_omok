@@ -11,13 +11,8 @@ let currentChoices = [];
 let correctIndex = -1;
 let reviewLog = [];
 
-// 💡 무르기를 위한 히스토리 및 횟수 추적
 let moveHistory = [];
 let undoCount = 2;
-
-// ==========================================
-// 🗣️ TTS 남/녀 목소리 저장 변수
-// ==========================================
 let currentQuestionVoice = null;
 let currentAnswerVoice = null;
 
@@ -35,7 +30,40 @@ const wrongMessages = [
 ];
 
 // ==========================================
-// 🎵 오디오, BGM & TTS 시스템
+// 💡 모바일 호환용 시스템 팝업창 (alert/confirm 완벽 대체)
+// ==========================================
+let sysConfirmCallback = null;
+
+function showSysConfirm(msg, onConfirm) {
+  document.getElementById('sys-modal-msg').innerText = msg;
+  document.getElementById('sys-btn-cancel').style.display = 'block';
+  sysConfirmCallback = onConfirm;
+  document.getElementById('sys-modal-overlay').style.display = 'flex';
+}
+
+function showSysAlert(msg) {
+  document.getElementById('sys-modal-msg').innerText = msg;
+  document.getElementById('sys-btn-cancel').style.display = 'none'; // 알림창은 취소 버튼 숨김
+  sysConfirmCallback = null;
+  document.getElementById('sys-modal-overlay').style.display = 'flex';
+}
+
+function closeSysModal() {
+  document.getElementById('sys-modal-overlay').style.display = 'none';
+}
+
+function onSysConfirmClick() {
+  closeSysModal();
+  if (sysConfirmCallback) sysConfirmCallback();
+}
+
+function onSysCancelClick() {
+  closeSysModal();
+  sysConfirmCallback = null;
+}
+
+// ==========================================
+// 🎵 오디오 시스템
 // ==========================================
 let audioCtx = null;
 const BGM_DEFAULT_VOL = 0.5;
@@ -68,15 +96,13 @@ function playRandomMainBGM() {
     mainBGMFiles[Math.floor(Math.random() * mainBGMFiles.length)];
   currentMainBGM = new Audio(nextFile);
   currentMainBGM.volume = BGM_DEFAULT_VOL;
-  currentMainBGM.play().catch((e) => console.log('BGM 자동재생 차단됨'));
-
+  currentMainBGM.play().catch((e) => console.log('BGM 차단됨'));
   currentMainBGM.onended = playRandomMainBGM;
 }
 
 function dimBGM() {
   if (currentMainBGM) currentMainBGM.volume = BGM_QUIZ_VOL;
 }
-
 function restoreBGM() {
   if (currentMainBGM) currentMainBGM.volume = BGM_DEFAULT_VOL;
 }
@@ -132,10 +158,8 @@ function playWrongSound() {
 function getChineseVoices() {
   const voices = window.speechSynthesis.getVoices();
   const zhVoices = voices.filter((v) => v.lang.includes('zh'));
-
-  let female = null;
-  let male = null;
-
+  let female = null,
+    male = null;
   if (zhVoices.length > 0) {
     female = zhVoices.find(
       (v) =>
@@ -151,7 +175,6 @@ function getChineseVoices() {
         v.name.includes('Yunjian') ||
         v.name.includes('Kangkang'),
     );
-
     if (!female) female = zhVoices[0];
     if (!male) male = zhVoices.find((v) => v !== female) || zhVoices[0];
   }
@@ -161,7 +184,6 @@ function getChineseVoices() {
 function playQuestionTTS() {
   if (!window.speechSynthesis || !currentQuizObj) return;
   window.speechSynthesis.cancel();
-
   let utter = new SpeechSynthesisUtterance(currentQuizObj.cnA);
   utter.lang = 'zh-CN';
   utter.rate = 0.8;
@@ -169,15 +191,12 @@ function playQuestionTTS() {
   if (currentQuestionVoice) utter.voice = currentQuestionVoice;
   window.speechSynthesis.speak(utter);
 }
-
 function replayQuestionTTS() {
   playQuestionTTS();
 }
-
 function playSingleTTS(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-
   let utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'zh-CN';
   utter.rate = 0.8;
@@ -187,7 +206,7 @@ function playSingleTTS(text) {
 }
 
 // ==========================================
-// 🎮 화면 전환 및 로직
+// 🎮 화면 및 게임 로직
 // ==========================================
 function showLobby() {
   document.getElementById('splash-screen').style.opacity = '0';
@@ -209,7 +228,7 @@ function prepareGame() {
   );
 
   if (currentLessonPool.length === 0) {
-    alert('해당 과의 데이터가 아직 없습니다. 다른 과를 선택해주세요.');
+    showSysAlert('해당 과의 데이터가 아직 없습니다.\n다른 과를 선택해주세요.');
     return;
   }
 
@@ -240,8 +259,6 @@ function initBoard() {
 
   currentPlayer = 'black';
   gameOver = false;
-
-  // 💡 초기화(다시하기) 시 기록도 리셋
   reviewLog = [];
   moveHistory = [];
   undoCount = 2;
@@ -261,9 +278,7 @@ function initBoard() {
   }
 }
 
-// ==========================================
-// 🔄 컨트롤 패널 기능 (무르기, 다시하기, 로비)
-// ==========================================
+// 💡 컨트롤 패널 클릭 이벤트 개선
 function updateUndoButton() {
   const btn = document.getElementById('undo-btn');
   btn.innerText = `↩️ 무르기(${undoCount})`;
@@ -271,17 +286,13 @@ function updateUndoButton() {
 }
 
 function undoMove() {
-  if (gameOver) return;
-  if (undoCount <= 0) return;
+  if (gameOver || undoCount <= 0) return;
   if (moveHistory.length === 0) {
-    alert('무를 수 있는 수가 없습니다.');
+    showSysAlert('무를 수 있는 수가 없습니다.');
     return;
   }
 
-  // 직전 행동 기록을 꺼냄
   const lastMove = moveHistory.pop();
-
-  // 바둑판에서 돌 제거 (스파르타 모드에서 'none'으로 기록된 경우는 DOM 제거 생략)
   if (lastMove.color !== 'none') {
     boardState[lastMove.r][lastMove.c] = null;
     const targetCell = document.querySelector(
@@ -291,10 +302,8 @@ function undoMove() {
     if (stone) stone.remove();
   }
 
-  // 문제 푼 기록(리뷰 로그)도 최근 것 1개 삭제 (원상복구)
   if (reviewLog.length > 0) reviewLog.pop();
 
-  // 턴 되돌리기
   currentPlayer = lastMove.prevPlayer;
   undoCount--;
   updateUndoButton();
@@ -304,30 +313,28 @@ function undoMove() {
 }
 
 function restartGame() {
-  if (
-    confirm(
-      '정말 이 판을 다시 시작하시겠습니까?\n(현재까지 푼 문제 기록도 초기화됩니다)',
-    )
-  ) {
-    initBoard();
-  }
+  showSysConfirm(
+    '정말 이 판을 다시 시작하시겠습니까?\n(현재까지 푼 문제 기록도 지워집니다)',
+    () => {
+      initBoard();
+    },
+  );
 }
 
 function returnToLobbyFromGame() {
-  if (confirm('게임을 중단하고 로비로 돌아가시겠습니까?')) {
+  showSysConfirm('게임을 중단하고 로비로 돌아가시겠습니까?', () => {
     document.getElementById('game-screen').style.display = 'none';
     document.getElementById('lobby-screen').style.display = 'flex';
     playLobbyBGM();
-  }
+  });
 }
 
 // ==========================================
-// 🎮 퀴즈 및 착점 로직
+// 🎮 퀴즈 풀이 로직
 // ==========================================
 function toggleTranslation() {
   const krElem = document.getElementById('modal-question-kr');
   const cnElem = document.getElementById('modal-question-cn');
-
   if (krElem.style.display === 'none') {
     krElem.style.display = 'block';
     cnElem.style.display = 'none';
@@ -382,7 +389,6 @@ function onCellClick(e) {
   currentChoices.forEach((choice, idx) => {
     const row = document.createElement('div');
     row.className = 'choice-row';
-
     const ttsBtn = document.createElement('button');
     ttsBtn.className = 'choice-tts-btn';
     ttsBtn.innerText = '🔊';
@@ -467,7 +473,6 @@ function handleAnswer(selectedIdx) {
 }
 
 function placeStone(r, c, color) {
-  // 💡 무르기를 위해 현재 상황을 기록 저장 (돌이 'none'이라도 턴이 넘어가므로 기록)
   moveHistory.push({ r: r, c: c, color: color, prevPlayer: currentPlayer });
 
   if (color !== 'none') {
@@ -485,7 +490,7 @@ function placeStone(r, c, color) {
       const winnerText = color === 'black' ? '흑(Black)' : '백(White)';
       document.getElementById('status').innerText = `${winnerText} 승리!`;
       gameOver = true;
-      updateUndoButton(); // 게임 종료 시 무르기 비활성화
+      updateUndoButton();
 
       if (currentMainBGM) currentMainBGM.pause();
       setTimeout(showReviewModal, 1500);
@@ -544,18 +549,15 @@ function checkWin(r, c, color) {
 function showReviewModal() {
   const listContainer = document.getElementById('review-list');
   listContainer.innerHTML = '';
-
   if (reviewLog.length === 0) {
     listContainer.innerHTML = '<p>푼 문제가 없습니다.</p>';
   } else {
     reviewLog.forEach((item, idx) => {
       const div = document.createElement('div');
       div.className = 'review-item';
-
       const mark = item.isCorrect
         ? '<span class="review-mark correct">[O 맞음]</span>'
         : '<span class="review-mark wrong">[X 틀림]</span>';
-
       div.innerHTML = `
                 <div class="review-q">${idx + 1}. ${mark} ${item.qCn}</div>
                 <div class="review-a" style="margin-bottom: 5px;">(${item.qKr})</div>
@@ -565,7 +567,6 @@ function showReviewModal() {
       listContainer.appendChild(div);
     });
   }
-
   document.getElementById('review-modal-overlay').style.display = 'flex';
 }
 
