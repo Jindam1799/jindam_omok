@@ -2,13 +2,34 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <!-- 모바일 화면 꽉 차게, 확대/축소 방지 -->
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>진담오목 - 진심을 담은 진담중국어</title>
-
+    <!-- 🚀 안드로이드 크롬 강제 실행 스크립트 시작 -->
+    <script>
+      (function () {
+        var userAgent = navigator.userAgent.toLowerCase();
+        // 안드로이드 기기인지 확인
+        if (userAgent.match(/android/i)) {
+          // 카카오톡, 네이버, 인스타그램, 페이스북, 라인, 다음 등의 인앱 브라우저인지 확인
+          if (
+            userAgent.match(/kakaotalk|naver|instagram|fb_iab|fbav|line|daum/i)
+          ) {
+            // 현재 URL에서 'http://' 또는 'https://'를 제거
+            var targetUrl = location.href.replace(/^https?:\/\//i, '');
+            // 안드로이드 크롬 앱을 강제로 호출하는 Intent URL 생성
+            var chromeIntent =
+              'intent://' +
+              targetUrl +
+              '#Intent;scheme=https;package=com.android.chrome;end;';
+            // 크롬으로 강제 이동
+            location.href = chromeIntent;
+          }
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -48,7 +69,6 @@
         <option value="29,30">29과 ~ 30과</option>
       </select>
 
-      <!-- 모드 통일 (게임시작하기) -->
       <button class="mode-btn peace" onclick="prepareGame()">
         게임시작하기
       </button>
@@ -80,7 +100,17 @@
       <div id="status">흑(Black) 차례입니다</div>
       <div id="mode-indicator"></div>
 
-      <!-- 반응형 보드 컨테이너 -->
+      <!-- 💡 새로 추가된 컨트롤 패널 (로비/무르기/다시하기) -->
+      <div class="game-controls">
+        <button class="game-btn" onclick="returnToLobbyFromGame()">
+          🏠 로비로
+        </button>
+        <button class="game-btn" id="undo-btn" onclick="undoMove()">
+          ↩️ 무르기(2)
+        </button>
+        <button class="game-btn" onclick="restartGame()">🔄 다시하기</button>
+      </div>
+
       <div id="board-container">
         <div id="board"></div>
 
@@ -99,7 +129,6 @@
 
         <div class="question-container">
           <div id="modal-question-cn"></div>
-          <!-- 한글 해석만 단독으로 들어갈 공간 -->
           <div id="modal-question-kr" style="display: none"></div>
         </div>
 
