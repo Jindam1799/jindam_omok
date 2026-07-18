@@ -7,29 +7,26 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
     <title>진담오목 - 진심을 담은 진담중국어</title>
-    <!-- 🚀 안드로이드 크롬 강제 실행 스크립트 시작 -->
+
+    <!-- 안드로이드 크롬 강제 실행 스크립트 -->
     <script>
       (function () {
         var userAgent = navigator.userAgent.toLowerCase();
-        // 안드로이드 기기인지 확인
         if (userAgent.match(/android/i)) {
-          // 카카오톡, 네이버, 인스타그램, 페이스북, 라인, 다음 등의 인앱 브라우저인지 확인
           if (
             userAgent.match(/kakaotalk|naver|instagram|fb_iab|fbav|line|daum/i)
           ) {
-            // 현재 URL에서 'http://' 또는 'https://'를 제거
             var targetUrl = location.href.replace(/^https?:\/\//i, '');
-            // 안드로이드 크롬 앱을 강제로 호출하는 Intent URL 생성
             var chromeIntent =
               'intent://' +
               targetUrl +
               '#Intent;scheme=https;package=com.android.chrome;end;';
-            // 크롬으로 강제 이동
             location.href = chromeIntent;
           }
         }
       })();
     </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -100,7 +97,7 @@
       <div id="status">흑(Black) 차례입니다</div>
       <div id="mode-indicator"></div>
 
-      <!-- 💡 새로 추가된 컨트롤 패널 (로비/무르기/다시하기) -->
+      <!-- 컨트롤 패널 -->
       <div class="game-controls">
         <button class="game-btn" onclick="returnToLobbyFromGame()">
           🏠 로비로
@@ -157,6 +154,40 @@
         >
           로비로 돌아가기
         </button>
+      </div>
+    </div>
+
+    <!-- 💡 7. 모바일 터치 오류 방지용 커스텀 시스템 팝업창 -->
+    <div id="sys-modal-overlay">
+      <div id="sys-modal-content">
+        <h3
+          id="sys-modal-msg"
+          style="color: #333; margin-top: 0; font-size: 18px; line-height: 1.4"
+        ></h3>
+        <div style="display: flex; gap: 10px; margin-top: 20px">
+          <button
+            class="mode-btn peace"
+            id="sys-btn-confirm"
+            style="margin: 0; flex: 1; font-size: 16px"
+            onclick="onSysConfirmClick()"
+          >
+            확인
+          </button>
+          <button
+            class="mode-btn"
+            id="sys-btn-cancel"
+            style="
+              margin: 0;
+              flex: 1;
+              font-size: 16px;
+              background-color: #888;
+              box-shadow: none;
+            "
+            onclick="onSysCancelClick()"
+          >
+            취소
+          </button>
+        </div>
       </div>
     </div>
 
