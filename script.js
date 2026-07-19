@@ -30,7 +30,7 @@ const wrongMessages = [
 ];
 
 // ==========================================
-// 💡 모바일 호환용 시스템 팝업창 (alert/confirm 완벽 대체)
+// 💡 모바일 호환용 시스템 팝업창 (alert/confirm 대체)
 // ==========================================
 let sysConfirmCallback = null;
 
@@ -43,7 +43,7 @@ function showSysConfirm(msg, onConfirm) {
 
 function showSysAlert(msg) {
   document.getElementById('sys-modal-msg').innerText = msg;
-  document.getElementById('sys-btn-cancel').style.display = 'none'; // 알림창은 취소 버튼 숨김
+  document.getElementById('sys-btn-cancel').style.display = 'none';
   sysConfirmCallback = null;
   document.getElementById('sys-modal-overlay').style.display = 'flex';
 }
@@ -155,9 +155,18 @@ function playWrongSound() {
   osc.stop(audioCtx.currentTime + 0.3);
 }
 
+// 💡 애플 기기 베트남어 문제 해결: 'zh'가 명확히 들어간 언어만 허용
 function getChineseVoices() {
   const voices = window.speechSynthesis.getVoices();
-  const zhVoices = voices.filter((v) => v.lang.includes('zh'));
+  // iOS/Mac 환경을 위해 'zh-CN', 'zh-TW', 'zh' 등 엄격한 필터링
+  const zhVoices = voices.filter(
+    (v) =>
+      v.lang === 'zh-CN' ||
+      v.lang === 'zh-TW' ||
+      v.lang === 'zh-HK' ||
+      v.lang.includes('zh-'),
+  );
+
   let female = null,
     male = null;
   if (zhVoices.length > 0) {
@@ -166,15 +175,20 @@ function getChineseVoices() {
         v.name.toLowerCase().includes('female') ||
         v.name.includes('Xiaoxiao') ||
         v.name.includes('Tingting') ||
-        v.name.includes('Yaoyao'),
+        v.name.includes('Yaoyao') ||
+        v.name.includes('Mei-Jia') ||
+        v.name.includes('Ting-Ting'),
     );
     male = zhVoices.find(
       (v) =>
         v.name.toLowerCase().includes('male') ||
         v.name.includes('Yunxi') ||
         v.name.includes('Yunjian') ||
-        v.name.includes('Kangkang'),
+        v.name.includes('Kangkang') ||
+        v.name.includes('Qiang') ||
+        v.name.includes('Han'),
     );
+
     if (!female) female = zhVoices[0];
     if (!male) male = zhVoices.find((v) => v !== female) || zhVoices[0];
   }
@@ -186,22 +200,29 @@ function playQuestionTTS() {
   window.speechSynthesis.cancel();
   let utter = new SpeechSynthesisUtterance(currentQuizObj.cnA);
   utter.lang = 'zh-CN';
-  utter.rate = 0.8;
+  utter.rate = 0.6;
   utter.volume = 1.0;
-  if (currentQuestionVoice) utter.voice = currentQuestionVoice;
+  // 목소리가 할당되었을 때만 강제 적용 (이상한 언어로 튀는 현상 방지)
+  if (currentQuestionVoice && currentQuestionVoice.lang.includes('zh')) {
+    utter.voice = currentQuestionVoice;
+  }
   window.speechSynthesis.speak(utter);
 }
+
 function replayQuestionTTS() {
   playQuestionTTS();
 }
+
 function playSingleTTS(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
   let utter = new SpeechSynthesisUtterance(text);
   utter.lang = 'zh-CN';
-  utter.rate = 0.8;
+  utter.rate = 0.6;
   utter.volume = 1.0;
-  if (currentAnswerVoice) utter.voice = currentAnswerVoice;
+  if (currentAnswerVoice && currentAnswerVoice.lang.includes('zh')) {
+    utter.voice = currentAnswerVoice;
+  }
   window.speechSynthesis.speak(utter);
 }
 
@@ -278,7 +299,6 @@ function initBoard() {
   }
 }
 
-// 💡 컨트롤 패널 클릭 이벤트 개선
 function updateUndoButton() {
   const btn = document.getElementById('undo-btn');
   btn.innerText = `↩️ 무르기(${undoCount})`;
