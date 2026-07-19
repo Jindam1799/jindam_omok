@@ -11,9 +11,10 @@ html {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  /* 💡 터치는 허용하되, 모바일 브라우저의 줌/스와이프 기능만 차단하여 버튼 먹통 방지 */
   touch-action: manipulation;
   overscroll-behavior: none;
+  /* 💡 기기 기본 컬러 테마 차단 */
+  color: #333;
 }
 
 .screen,
@@ -77,6 +78,7 @@ html {
   letter-spacing: 2px;
 }
 
+/* 💡 셀렉트 박스 파란색 방지 및 테마 통일 */
 .lesson-select {
   width: 90%;
   max-width: 350px;
@@ -88,6 +90,10 @@ html {
   font-family: inherit;
   text-align: center;
   cursor: pointer;
+  color: #333;
+  background-color: #fff;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .mode-btn {
@@ -105,6 +111,8 @@ html {
   transition:
     transform 0.2s,
     box-shadow 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .mode-btn.peace {
   background-color: #b52a2a;
@@ -175,7 +183,6 @@ html {
   gap: 8px;
   width: min(95vw, 70vh);
   margin-bottom: 15px;
-  /* 💡 버튼이 다른 요소에 덮여 클릭 안되는 현상 완벽 방지 */
   position: relative;
   z-index: 999;
 }
@@ -193,6 +200,8 @@ html {
   transition:
     background 0.2s,
     transform 0.1s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .game-btn:active {
   transform: translateY(2px);
@@ -347,6 +356,8 @@ html {
   font-weight: bold;
   cursor: pointer;
   transition: background 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .action-btn:active {
   background-color: #ffcc80;
@@ -358,6 +369,8 @@ html {
   gap: 10px;
   margin-bottom: 12px;
 }
+
+/* 💡 스피커 아이콘 쏠림 완벽 해결 (Flexbox 중앙 정렬) */
 .choice-tts-btn {
   flex-shrink: 0;
   width: 50px;
@@ -368,11 +381,22 @@ html {
   font-size: 22px;
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  color: #333;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .choice-tts-btn:active {
   border-color: #4caf50;
   background-color: #e8f5e9;
 }
+
+/* 💡 보기 버튼 파란색 텍스트 변경 방지 */
 .choice-btn-new {
   flex-grow: 1;
   text-align: left;
@@ -383,6 +407,9 @@ html {
   border-radius: 8px;
   background-color: #f9f9f9;
   font-weight: bold;
+  color: #333;
+  -webkit-appearance: none;
+  appearance: none;
 }
 .choice-btn-new:active {
   border-color: #b52a2a;
@@ -508,6 +535,7 @@ html {
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  color: #333;
 }
 #review-list {
   flex-grow: 1;
@@ -536,7 +564,7 @@ html {
   color: #f44336;
 }
 
-/* 💡 시스템 알럿 모달 (모바일 호환) */
+/* 시스템 알럿 모달 */
 #sys-modal-overlay {
   display: none;
   position: fixed;
