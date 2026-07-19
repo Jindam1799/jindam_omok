@@ -155,21 +155,15 @@ function playWrongSound() {
   osc.stop(audioCtx.currentTime + 0.3);
 }
 
-// 💡 애플 기기 베트남어 문제 해결: 'zh'가 명확히 들어간 언어만 허용
 function getChineseVoices() {
   const voices = window.speechSynthesis.getVoices();
-  // iOS/Mac 환경을 위해 'zh-CN', 'zh-TW', 'zh' 등 엄격한 필터링
-  const zhVoices = voices.filter(
-    (v) =>
-      v.lang === 'zh-CN' ||
-      v.lang === 'zh-TW' ||
-      v.lang === 'zh-HK' ||
-      v.lang.includes('zh-'),
-  );
+  // 💡 가장 핵심: lang 속성이 'zh'로 시작하는 목소리만 필터링
+  const zhVoices = voices.filter((v) => v.lang.startsWith('zh'));
 
   let female = null,
     male = null;
   if (zhVoices.length > 0) {
+    // 이름에 'female' 혹은 중국어 여성 이름이 들어간 것을 우선 탐색
     female = zhVoices.find(
       (v) =>
         v.name.toLowerCase().includes('female') ||
@@ -194,33 +188,33 @@ function getChineseVoices() {
   }
   return { female, male };
 }
-
 function playQuestionTTS() {
   if (!window.speechSynthesis || !currentQuizObj) return;
   window.speechSynthesis.cancel();
+
   let utter = new SpeechSynthesisUtterance(currentQuizObj.cnA);
+  // 💡 언어를 강제로 중국어(zh-CN)로 명시
   utter.lang = 'zh-CN';
-  utter.rate = 0.6;
+  utter.rate = 0.8;
   utter.volume = 1.0;
-  // 목소리가 할당되었을 때만 강제 적용 (이상한 언어로 튀는 현상 방지)
-  if (currentQuestionVoice && currentQuestionVoice.lang.includes('zh')) {
+
+  if (currentQuestionVoice) {
     utter.voice = currentQuestionVoice;
   }
   window.speechSynthesis.speak(utter);
 }
 
-function replayQuestionTTS() {
-  playQuestionTTS();
-}
-
 function playSingleTTS(text) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
+
   let utter = new SpeechSynthesisUtterance(text);
+  // 💡 언어를 강제로 중국어(zh-CN)로 명시
   utter.lang = 'zh-CN';
-  utter.rate = 0.6;
+  utter.rate = 0.8;
   utter.volume = 1.0;
-  if (currentAnswerVoice && currentAnswerVoice.lang.includes('zh')) {
+
+  if (currentAnswerVoice) {
     utter.voice = currentAnswerVoice;
   }
   window.speechSynthesis.speak(utter);
